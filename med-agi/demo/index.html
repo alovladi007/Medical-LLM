@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Med-AGI System Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .status-bar {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            animation: fadeIn 1s ease;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.online {
+            background: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .status-indicator.offline {
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        .status-indicator.pending {
+            background: #f59e0b;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .service-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 0.8s ease backwards;
+        }
+
+        .service-card:nth-child(1) { animation-delay: 0.1s; }
+        .service-card:nth-child(2) { animation-delay: 0.2s; }
+        .service-card:nth-child(3) { animation-delay: 0.3s; }
+        .service-card:nth-child(4) { animation-delay: 0.4s; }
+        .service-card:nth-child(5) { animation-delay: 0.5s; }
+        .service-card:nth-child(6) { animation-delay: 0.6s; }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .service-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .service-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        .service-title {
+            flex: 1;
+        }
+
+        .service-title h3 {
+            color: #1f2937;
+            margin-bottom: 5px;
+        }
+
+        .service-port {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+
+        .service-description {
+            color: #4b5563;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .service-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .service-features li {
+            padding: 8px 0;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+        }
+
+        .service-features li:before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .demo-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+        }
+
+        .demo-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .demo-button:active {
+            transform: scale(0.98);
+        }
+
+        .demo-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .demo-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            color: #374151;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .input-group input, .input-group select, .input-group textarea {
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .results-container {
+            background: #f9fafb;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            color: #1f2937;
+            border: 2px solid #e5e7eb;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            padding: 20px;
+            opacity: 0.9;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .tab-container {
+            margin-bottom: 30px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #4b5563;
+            font-weight: 500;
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .feature-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #4b5563;
+            margin-right: 5px;
+        }
+
+        .gpu-badge {
+            background: #10b981;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2em; }
+            .services-grid { grid-template-columns: 1fr; }
+            .service-card { margin-bottom: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏥 Med-AGI System</h1>
+            <p class="subtitle">Advanced Medical AI Gateway Interface - Demo Dashboard</p>
+        </header>
+
+        <div class="status-bar">
+            <h2 style="margin-bottom: 15px; color: #1f2937;">System Status</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-indicator online"></span>
+                    <strong>Imaging</strong>
+                    <div style="color: #6b7280; font-size: 0.9em;">Port 8006</div>
+                </div>
+                <div class="status-item">
+                    <span class="status-indicator online"></span>
+                    <strong>EKG</strong>
+                    <div style="color: #6b7280; font-size: 0.9em;">Port 8016</div>
+                </div>
+                <div class="status-item">
+                    <span class="status-indicator online"></span>
+                    <strong>Evaluation</strong>
+                    <div style="color: #6b7280; font-size: 0.9em;">Port 8005</div>
+                </div>
+                <div class="status-item">
+                    <span class="status-indicator pending"></span>
+                    <strong>Anchor</strong>
+                    <div style="color: #6b7280; font-size: 0.9em;">Port 8007</div>
+                </div>
+                <div class="status-item">
+                    <span class="status-indicator pending"></span>
+                    <strong>ModelCards</strong>
+                    <div style="color: #6b7280; font-size: 0.9em;">Port 8008</div>
+                </div>
+                <div class="status-item">
+                    <span class="status-indicator pending"></span>
+                    <strong>Operations</strong>
+                    <div style="color: #6b7280; font-size: 0.9em;">Port 8010</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="services-grid">
+            <!-- Imaging Service -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-icon" style="background: linear-gradient(135deg, #3b82f6, #1e40af);">
+                        🏥
+                    </div>
+                    <div class="service-title">
+                        <h3>Imaging Service</h3>
+                        <div class="service-port">localhost:8006</div>
+                    </div>
+                </div>
+                <div class="service-description">
+                    Medical imaging analysis with GPU-accelerated inference for X-rays, CT scans, and MRI images.
+                </div>
+                <ul class="service-features">
+                    <li>Multi-modality support (CXR, CT, MRI)</li>
+                    <li>Triton GPU acceleration</li>
+                    <li>DICOM integration</li>
+                    <li>Batch processing</li>
+                </ul>
+                <div>
+                    <span class="feature-badge gpu-badge">GPU</span>
+                    <span class="feature-badge">DICOM</span>
+                    <span class="feature-badge">Batch</span>
+                </div>
+                <button class="demo-button" onclick="showDemo('imaging')" style="margin-top: 15px;">
+                    Try Demo
+                </button>
+            </div>
+
+            <!-- EKG Service -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                        💓
+                    </div>
+                    <div class="service-title">
+                        <h3>EKG Service</h3>
+                        <div class="service-port">localhost:8016</div>
+                    </div>
+                </div>
+                <div class="service-description">
+                    Advanced EKG waveform analysis with rhythm detection and interval measurements.
+                </div>
+                <ul class="service-features">
+                    <li>Rhythm classification (AFib, Flutter)</li>
+                    <li>Heart rate variability analysis</li>
+                    <li>Interval measurements (PR, QRS, QT)</li>
+                    <li>Signal quality assessment</li>
+                </ul>
+                <div>
+                    <span class="feature-badge">HRV</span>
+                    <span class="feature-badge">12-Lead</span>
+                    <span class="feature-badge">Real-time</span>
+                </div>
+                <button class="demo-button" onclick="showDemo('ekg')" style="margin-top: 15px;">
+                    Try Demo
+                </button>
+            </div>
+
+            <!-- Evaluation Service -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        📊
+                    </div>
+                    <div class="service-title">
+                        <h3>Evaluation Service</h3>
+                        <div class="service-port">localhost:8005</div>
+                    </div>
+                </div>
+                <div class="service-description">
+                    Model performance tracking, evaluation metrics, and comparison analytics.
+                </div>
+                <ul class="service-features">
+                    <li>Performance metrics tracking</li>
+                    <li>Model comparison</li>
+                    <li>Confusion matrix generation</li>
+                    <li>Trend analysis</li>
+                </ul>
+                <div>
+                    <span class="feature-badge">PostgreSQL</span>
+                    <span class="feature-badge">Metrics</span>
+                    <span class="feature-badge">Reports</span>
+                </div>
+                <button class="demo-button" onclick="showDemo('eval')" style="margin-top: 15px;">
+                    Try Demo
+                </button>
+            </div>
+
+            <!-- Anchor Service -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        🔗
+                    </div>
+                    <div class="service-title">
+                        <h3>Anchor Service</h3>
+                        <div class="service-port">localhost:8007</div>
+                    </div>
+                </div>
+                <div class="service-description">
+                    Medical record anchoring and search with patient record linking capabilities.
+                </div>
+                <ul class="service-features">
+                    <li>Patient record linking</li>
+                    <li>Similarity search</li>
+                    <li>Elasticsearch integration</li>
+                    <li>Record deduplication</li>
+                </ul>
+                <div>
+                    <span class="feature-badge">Elasticsearch</span>
+                    <span class="feature-badge">Search</span>
+                </div>
+                <button class="demo-button" onclick="alert('Service pending implementation')" style="margin-top: 15px;">
+                    Coming Soon
+                </button>
+            </div>
+
+            <!-- ModelCards Service -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                        📋
+                    </div>
+                    <div class="service-title">
+                        <h3>ModelCards Service</h3>
+                        <div class="service-port">localhost:8008</div>
+                    </div>
+                </div>
+                <div class="service-description">
+                    Model documentation management with versioning and performance history.
+                </div>
+                <ul class="service-features">
+                    <li>Model documentation</li>
+                    <li>Version tracking</li>
+                    <li>Performance history</li>
+                    <li>S3/MinIO storage</li>
+                </ul>
+                <div>
+                    <span class="feature-badge">S3</span>
+                    <span class="feature-badge">Versioning</span>
+                </div>
+                <button class="demo-button" onclick="alert('Service pending implementation')" style="margin-top: 15px;">
+                    Coming Soon
+                </button>
+            </div>
+
+            <!-- Operations Service -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-icon" style="background: linear-gradient(135deg, #6b7280, #4b5563);">
+                        ⚙️
+                    </div>
+                    <div class="service-title">
+                        <h3>Operations Service</h3>
+                        <div class="service-port">localhost:8010</div>
+                    </div>
+                </div>
+                <div class="service-description">
+                    SIEM integration, log aggregation, and security event monitoring.
+                </div>
+                <ul class="service-features">
+                    <li>SIEM integration</li>
+                    <li>Security monitoring</li>
+                    <li>Log aggregation</li>
+                    <li>Prometheus metrics</li>
+                </ul>
+                <div>
+                    <span class="feature-badge">SIEM</span>
+                    <span class="feature-badge">Prometheus</span>
+                </div>
+                <button class="demo-button" onclick="alert('Service pending implementation')" style="margin-top: 15px;">
+                    Coming Soon
+                </button>
+            </div>
+        </div>
+
+        <!-- Demo Section -->
+        <div class="demo-section" id="demoSection" style="display: none;">
+            <h2 style="margin-bottom: 20px; color: #1f2937;">Interactive Demo</h2>
+            
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="switchTab('imaging')">Imaging Analysis</button>
+                    <button class="tab-button" onclick="switchTab('ekg')">EKG Analysis</button>
+                    <button class="tab-button" onclick="switchTab('eval')">Model Evaluation</button>
+                </div>
+
+                <!-- Imaging Demo -->
+                <div class="tab-content active" id="imaging-tab">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>Select Modality</label>
+                            <select id="modality">
+                                <option value="CXR">Chest X-Ray (CXR)</option>
+                                <option value="CT">CT Scan</option>
+                                <option value="MRI">MRI</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Upload Image</label>
+                            <input type="file" accept="image/*" id="imageFile">
+                        </div>
+                        <div class="input-group">
+                            <label>GPU Acceleration</label>
+                            <select id="gpu">
+                                <option value="true">Enabled (Triton)</option>
+                                <option value="false">CPU Fallback</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="demo-button" onclick="runImagingDemo()">Analyze Image</button>
+                    <div class="results-container" id="imaging-results" style="margin-top: 20px;">
+                        Results will appear here...
+                    </div>
+                </div>
+
+                <!-- EKG Demo -->
+                <div class="tab-content" id="ekg-tab">
+                    <div class="demo-controls">
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label>EKG Waveform Data (1000 samples)</label>
+                            <textarea id="ekgData" rows="4" placeholder="Paste comma-separated values or click 'Generate Sample'"></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label>Lead</label>
+                            <select id="lead">
+                                <option value="II">Lead II</option>
+                                <option value="I">Lead I</option>
+                                <option value="III">Lead III</option>
+                                <option value="V1">V1</option>
+                                <option value="V2">V2</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Sampling Rate (Hz)</label>
+                            <input type="number" id="samplingRate" value="500">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="demo-button" onclick="generateEKGSample()">Generate Sample</button>
+                        <button class="demo-button" onclick="runEKGDemo()">Analyze EKG</button>
+                    </div>
+                    <div class="results-container" id="ekg-results" style="margin-top: 20px;">
+                        Results will appear here...
+                    </div>
+                </div>
+
+                <!-- Evaluation Demo -->
+                <div class="tab-content" id="eval-tab">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>Model Name</label>
+                            <input type="text" id="modelName" value="densenet121_cxr">
+                        </div>
+                        <div class="input-group">
+                            <label>Dataset</label>
+                            <select id="dataset">
+                                <option value="ChestX-ray14">ChestX-ray14</option>
+                                <option value="MIMIC-CXR">MIMIC-CXR</option>
+                                <option value="Custom">Custom Dataset</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Metric Type</label>
+                            <select id="metric">
+                                <option value="accuracy">Accuracy</option>
+                                <option value="f1_score">F1 Score</option>
+                                <option value="auc_roc">AUC-ROC</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="demo-button" onclick="runEvalDemo()">Evaluate Model</button>
+                    <div class="results-container" id="eval-results" style="margin-top: 20px;">
+                        Results will appear here...
+                    </div>
+                    <div class="metrics-grid" id="metrics-display" style="display: none;">
+                        <div class="metric-card">
+                            <div class="metric-value" id="accuracy-val">--</div>
+                            <div class="metric-label">Accuracy</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="precision-val">--</div>
+                            <div class="metric-label">Precision</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="recall-val">--</div>
+                            <div class="metric-label">Recall</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="f1-val">--</div>
+                            <div class="metric-label">F1 Score</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Med-AGI System v1.0.0 | © 2025 Medical AI Gateway Interface</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">
+                Demo Mode - Simulated Results | 
+                <a href="#" style="color: white; text-decoration: underline;" onclick="showSystemInfo()">System Info</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Demo functionality
+        function showDemo(service) {
+            const demoSection = document.getElementById('demoSection');
+            demoSection.style.display = 'block';
+            demoSection.scrollIntoView({ behavior: 'smooth' });
+            
+            // Switch to appropriate tab
+            switchTab(service);
+        }
+
+        function switchTab(tabName) {
+            // Update buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target?.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + '-tab')?.classList.add('active');
+        }
+
+        function runImagingDemo() {
+            const modality = document.getElementById('modality').value;
+            const gpu = document.getElementById('gpu').value;
+            const resultsDiv = document.getElementById('imaging-results');
+            
+            // Simulate API call
+            resultsDiv.innerHTML = 'Analyzing image...';
+            
+            setTimeout(() => {
+                const results = {
+                    "image_id": "demo_image_001",
+                    "modality": modality,
+                    "predictions": {
+                        "No Finding": 0.12,
+                        "Cardiomegaly": 0.78,
+                        "Edema": 0.45,
+                        "Consolidation": 0.23,
+                        "Atelectasis": 0.15,
+                        "Pleural Effusion": 0.67,
+                        "Pneumonia": 0.34,
+                        "Pneumothorax": 0.08
+                    },
+                    "uncertainty": 0.24,
+                    "inference_time_ms": gpu === 'true' ? 45.3 : 234.7,
+                    "backend": gpu === 'true' ? "GPU (Triton)" : "CPU",
+                    "model": "densenet121_cxr_v1.0"
+                };
+                
+                resultsDiv.innerHTML = JSON.stringify(results, null, 2);
+            }, 1500);
+        }
+
+        function generateEKGSample() {
+            // Generate realistic EKG waveform data
+            const samples = [];
+            for (let i = 0; i < 1000; i++) {
+                const t = i / 500; // Time in seconds
+                // Simulate heartbeat pattern
+                let value = 0;
+                
+                // P wave
+                if (t % 0.8 > 0.05 && t % 0.8 < 0.15) {
+                    value += 0.2 * Math.sin((t % 0.8 - 0.05) * 31.4);
+                }
+                // QRS complex
+                if (t % 0.8 > 0.18 && t % 0.8 < 0.28) {
+                    value += 1.5 * Math.sin((t % 0.8 - 0.18) * 31.4);
+                }
+                // T wave
+                if (t % 0.8 > 0.35 && t % 0.8 < 0.55) {
+                    value += 0.3 * Math.sin((t % 0.8 - 0.35) * 15.7);
+                }
+                
+                // Add some noise
+                value += (Math.random() - 0.5) * 0.05;
+                
+                samples.push(value.toFixed(4));
+            }
+            
+            document.getElementById('ekgData').value = samples.join(', ');
+        }
+
+        function runEKGDemo() {
+            const lead = document.getElementById('lead').value;
+            const samplingRate = document.getElementById('samplingRate').value;
+            const resultsDiv = document.getElementById('ekg-results');
+            
+            resultsDiv.innerHTML = 'Analyzing EKG waveform...';
+            
+            setTimeout(() => {
+                const results = {
+                    "rhythm": "Normal Sinus Rhythm",
+                    "heart_rate": 72,
+                    "pr_interval": 164,
+                    "qrs_duration": 88,
+                    "qt_interval": 380,
+                    "qtc": 412,
+                    "probabilities": {
+                        "Normal": 0.89,
+                        "AFib": 0.03,
+                        "AFlutter": 0.01,
+                        "Bradycardia": 0.02,
+                        "Tachycardia": 0.01,
+                        "PVC": 0.02,
+                        "PAC": 0.01,
+                        "LBBB": 0.00,
+                        "RBBB": 0.01
+                    },
+                    "uncertainty": 0.12,
+                    "lead": lead,
+                    "sampling_rate": samplingRate,
+                    "quality_score": 0.94,
+                    "inference_time_ms": 23.5
+                };
+                
+                resultsDiv.innerHTML = JSON.stringify(results, null, 2);
+            }, 1500);
+        }
+
+        function runEvalDemo() {
+            const modelName = document.getElementById('modelName').value;
+            const dataset = document.getElementById('dataset').value;
+            const resultsDiv = document.getElementById('eval-results');
+            const metricsDisplay = document.getElementById('metrics-display');
+            
+            resultsDiv.innerHTML = 'Evaluating model performance...';
+            
+            setTimeout(() => {
+                const results = {
+                    "model_name": modelName,
+                    "dataset": dataset,
+                    "num_samples": 112120,
+                    "timestamp": new Date().toISOString(),
+                    "metrics": {
+                        "accuracy": 0.8734,
+                        "precision": 0.8456,
+                        "recall": 0.8123,
+                        "f1_score": 0.8286,
+                        "auc_roc": 0.9145
+                    },
+                    "confusion_matrix": [
+                        [8234, 456, 123, 89],
+                        [234, 7890, 345, 67],
+                        [123, 234, 8901, 45],
+                        [45, 67, 89, 9012]
+                    ],
+                    "evaluation_time_s": 45.7
+                };
+                
+                resultsDiv.innerHTML = JSON.stringify(results, null, 2);
+                
+                // Update metrics display
+                metricsDisplay.style.display = 'grid';
+                document.getElementById('accuracy-val').textContent = (results.metrics.accuracy * 100).toFixed(1) + '%';
+                document.getElementById('precision-val').textContent = (results.metrics.precision * 100).toFixed(1) + '%';
+                document.getElementById('recall-val').textContent = (results.metrics.recall * 100).toFixed(1) + '%';
+                document.getElementById('f1-val').textContent = results.metrics.f1_score.toFixed(3);
+            }, 2000);
+        }
+
+        function showSystemInfo() {
+            alert(`Med-AGI System Information:
+            
+Version: 1.0.0
+Services: 6 (3 fully implemented, 3 pending)
+Architecture: Microservices
+Container: Docker/Kubernetes Ready
+GPU Support: NVIDIA Triton
+Database: PostgreSQL, Elasticsearch
+Storage: MinIO (S3-compatible)
+Monitoring: Prometheus + Grafana
+Security: JWT + OPA + SIEM
+
+Repository: /workspace/med-agi
+Branch: main
+Status: Pilot Ready`);
+        }
+
+        // Simulate real-time status updates
+        setInterval(() => {
+            const indicators = document.querySelectorAll('.status-indicator');
+            indicators.forEach((indicator, index) => {
+                if (Math.random() > 0.95 && index < 3) {
+                    // Occasionally flicker the online services
+                    indicator.style.opacity = '0.3';
+                    setTimeout(() => {
+                        indicator.style.opacity = '1';
+                    }, 200);
+                }
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

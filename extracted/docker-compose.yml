@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  imaging:
+    build: .
+    environment:
+      - TRITON_URL=http://triton:8000
+    ports: ["8006:8006"]
+    depends_on: [triton]
+  triton:
+    image: nvcr.io/nvidia/tritonserver:24.05-py3
+    command: ["tritonserver","--model-repository=/models"]
+    volumes:
+      - ./models:/models

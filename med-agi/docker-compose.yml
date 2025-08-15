@@ -1,0 +1,337 @@
+version: "3.9"
+
+services:
+  # Imaging Service with Triton GPU acceleration
+  imaging:
+    build:
+      context: ./services/imaging
+      dockerfile: Dockerfile
+    container_name: med-agi-imaging
+    environment:
+      - TRITON_URL=${TRITON_URL:-http://triton:8000}
+      - DICOMWEB_BASE=${DICOMWEB_BASE}
+      - OIDC_ISSUER=${OIDC_ISSUER}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE}
+      - OIDC_JWKS_URL=${OIDC_JWKS_URL}
+      - OPA_URL=${OPA_URL:-http://opa:8181}
+    ports:
+      - "8006:8006"
+    depends_on:
+      - triton
+      - opa
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/v1/triton/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Triton Inference Server
+  triton:
+    image: nvcr.io/nvidia/tritonserver:24.05-py3
+    container_name: med-agi-triton
+    command: ["tritonserver", "--model-repository=/models", "--strict-model-config=false"]
+    volumes:
+      - ./models:/models:ro
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # EKG Service
+  ekg:
+    build:
+      context: ./services/ekg
+      dockerfile: Dockerfile
+    container_name: med-agi-ekg
+    environment:
+      - TRITON_URL=${TRITON_URL:-http://triton:8000}
+      - OIDC_ISSUER=${OIDC_ISSUER}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE}
+      - OIDC_JWKS_URL=${OIDC_JWKS_URL}
+      - OPA_URL=${OPA_URL:-http://opa:8181}
+    ports:
+      - "8016:8016"
+    depends_on:
+      - triton
+      - opa
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8016/v1/ekg/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Evaluation Service
+  eval:
+    build:
+      context: ./services/eval
+      dockerfile: Dockerfile
+    container_name: med-agi-eval
+    environment:
+      - OIDC_ISSUER=${OIDC_ISSUER}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE}
+      - OIDC_JWKS_URL=${OIDC_JWKS_URL}
+      - OPA_URL=${OPA_URL:-http://opa:8181}
+      - DB_URL=${EVAL_DB_URL:-postgresql://eval:eval@postgres:5432/eval}
+    ports:
+      - "8005:8005"
+    depends_on:
+      - postgres
+      - opa
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/v1/eval/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Anchor Service
+  anchor:
+    build:
+      context: ./services/anchor
+      dockerfile: Dockerfile
+    container_name: med-agi-anchor
+    environment:
+      - OIDC_ISSUER=${OIDC_ISSUER}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE}
+      - OIDC_JWKS_URL=${OIDC_JWKS_URL}
+      - OPA_URL=${OPA_URL:-http://opa:8181}
+      - ELASTIC_URL=${ELASTIC_URL:-http://elasticsearch:9200}
+    ports:
+      - "8007:8007"
+    depends_on:
+      - elasticsearch
+      - opa
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/v1/anchor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ModelCards Service
+  modelcards:
+    build:
+      context: ./services/modelcards
+      dockerfile: Dockerfile
+    container_name: med-agi-modelcards
+    environment:
+      - OIDC_ISSUER=${OIDC_ISSUER}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE}
+      - OIDC_JWKS_URL=${OIDC_JWKS_URL}
+      - OPA_URL=${OPA_URL:-http://opa:8181}
+      - S3_BUCKET=${MODELCARDS_BUCKET:-med-agi-modelcards}
+    ports:
+      - "8008:8008"
+    depends_on:
+      - minio
+      - opa
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8008/v1/modelcards/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Operations Service
+  ops:
+    build:
+      context: ./services/ops
+      dockerfile: Dockerfile
+    container_name: med-agi-ops
+    environment:
+      - SIEM_URL=${SIEM_URL}
+      - SIEM_MODE=${SIEM_MODE:-dev}
+      - PROMETHEUS_URL=${PROMETHEUS_URL:-http://prometheus:9090}
+    ports:
+      - "8010:8010"
+    depends_on:
+      - prometheus
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/v1/ops/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Open Policy Agent
+  opa:
+    image: openpolicyagent/opa:latest-envoy
+    container_name: med-agi-opa
+    command:
+      - "run"
+      - "--server"
+      - "--log-level=info"
+      - "/policies"
+    volumes:
+      - ./policies:/policies:ro
+    ports:
+      - "8181:8181"
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: med-agi-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-medagi}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-medagi}
+      - POSTGRES_DB=${POSTGRES_DB:-medagi}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-medagi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: med-agi-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MinIO (S3-compatible storage)
+  minio:
+    image: minio/minio:latest
+    container_name: med-agi-minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: med-agi-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    profiles:
+      - dev
+      - prod
+    restart: unless-stopped
+
+  # Keycloak (OIDC provider for dev)
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: med-agi-keycloak
+    command: start-dev
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-medagi}
+      - KC_DB_USERNAME=${POSTGRES_USER:-medagi}
+      - KC_DB_PASSWORD=${POSTGRES_PASSWORD:-medagi}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    profiles:
+      - dev
+    restart: unless-stopped
+
+  # UI Service (Next.js)
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: med-agi-ui
+    environment:
+      - NEXT_PUBLIC_IMAGING_API=${IMAGING_URL:-http://localhost:8006}
+      - NEXT_PUBLIC_EKG_API=${EKG_URL:-http://localhost:8016}
+      - NEXT_PUBLIC_EVAL_API=${EVAL_URL:-http://localhost:8005}
+      - NEXT_PUBLIC_ANCHOR_API=${ANCHOR_URL:-http://localhost:8007}
+      - NEXT_PUBLIC_MODELCARDS_API=${MODELCARDS_URL:-http://localhost:8008}
+      - NEXT_PUBLIC_OPS_API=${OPS_URL:-http://localhost:8010}
+    ports:
+      - "3000:3000"
+    profiles:
+      - dev
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  elastic_data:
+  minio_data:
+  prometheus_data:
+
+networks:
+  default:
+    name: med-agi-network
+    driver: bridge

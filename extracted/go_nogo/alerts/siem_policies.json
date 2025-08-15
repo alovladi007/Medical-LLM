@@ -1,0 +1,25 @@
+{
+  "error_rate": {
+    "description": "High HTTP 5xx error rate",
+    "query": "service:* AND status:[500 TO 599]",
+    "threshold_per_minute": 10,
+    "action": "send_to_oncall"
+  },
+  "latency_p95": {
+    "description": "High p95 latency",
+    "query": "service:* AND p95_ms:>500",
+    "threshold_windows": [
+      "5m",
+      "15m"
+    ],
+    "action": "send_to_oncall"
+  },
+  "triton_down": {
+    "description": "Triton not healthy for 5 mins",
+    "query": "service:imaging AND triton_healthy:false",
+    "threshold_windows": [
+      "5m"
+    ],
+    "action": "page_ml_platform"
+  }
+}

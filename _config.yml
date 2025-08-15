@@ -1,0 +1,10 @@
+theme: jekyll-theme-minimal
+title: Med-AGI System
+description: Advanced Medical AI Gateway Interface
+show_downloads: true
+google_analytics: 
+include:
+  - demo
+  - docs
+  - README.md
+  - index.html
